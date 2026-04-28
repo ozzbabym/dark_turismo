@@ -381,31 +381,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
     // ------------------- 1. Загрузка регионов (парсинг + fallback) ------------------
     async function loadRegionsFromSite() {
-        try {
-            statusSpan.innerText = "📡 Загрузка регионов...";
-            const resp = await fetch('https://tourism.fsa.gov.ru/ru/resorts/showcase/hotels');
-            if (!resp.ok) throw new Error('Не удалось загрузить страницу');
-            const html = await resp.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            let regionHtmlSelect = null;
-            const allSelects = doc.querySelectorAll('select');
-            for (let sel of allSelects) {
-                if (sel.options.length > 10) { regionHtmlSelect = sel; break; }
-            }
-            if (!regionHtmlSelect) throw new Error('Регионы не найдены');
-            
-            regionSelect.innerHTML = '<option value="">-- Выберите регион --</option>';
-            for (let i=0; i<regionHtmlSelect.options.length; i++) {
-                const opt = regionHtmlSelect.options[i];
-                const val = opt.value, name = opt.textContent.trim();
-                if (val && name) {
-                    regionSelect.appendChild(new Option(name, val));
-                    regionsList.push({id:val, name});
-                }
-            }
-            statusSpan.innerText = `✅ Загружено ${regionSelect.options.length-1} регионов`;
-        } catch(e) {
-            console.warn(e);
+    
             statusSpan.innerText = "⚠️ Ручной список регионов";
             regionSelect.innerHTML = '<option value="">-- Выберите регион --</option>' +
                                     '<option value="1">Республика Адыгея (Адыгея)</option>' +
@@ -501,8 +477,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                                     '<option value="91">Республика Крым (основной)</option>' +
                                     '<option value="92">г. Севастополь (основной)</option>' +
                                     '<option value="93">Запорожская область</option>' +
-                                    '<option value="94">Херсонская область</option>';;
-        }
+                                    '<option value="94">Херсонская область</option>';
     }
 
     // Извлечение муниципального образования по ключевым словам
@@ -525,9 +500,17 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     }
 
     // Номерной фонд через /drawer
-    async function fetchRoomCount(hotelId) {
+    async function fetchRoomCount(hotel) {
+        
         try {
-            const url = `https://tourism.fsa.gov.ru/api/v1/resorts/hotels/${hotelId}/drawer`;
+            if (item.hotelType?.name.toLowerCase().includes('гостевой дом')) {
+                const url = `https://tourism.fsa.gov.ru/api/v1/resorts/hotels/${hotel.id}/dhdrawer`;
+                const resp = await fetch(url, { signal: currentController?.signal });
+                if (!resp.ok) return '—';
+                const data = await resp.json();
+                return data.roomInfo?.apartmentCount ?? '—';
+            }
+            const url = `https://tourism.fsa.gov.ru/api/v1/resorts/hotels/${hotel.id}/drawer`;
             const resp = await fetch(url, { signal: currentController?.signal });
             if (!resp.ok) return '—';
             const data = await resp.json();
@@ -564,7 +547,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         for (let i=0; i<rawItems.length; i++) {
             if (currentController?.signal.aborted) throw new Error("Отменено");
             const item = rawItems[i];
-            const rooms = await fetchRoomCount(item.id);
+            const rooms = await fetchRoomCount(item);
             const address = item.addressList?.[0]?.name || '';
             const stars = categoryStarsMap[item.category?.id] ?? 0;
             enriched.push({
