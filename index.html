@@ -501,10 +501,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
     // Номерной фонд через /drawer
     async function fetchRoomCount(hotel) {
-        
         try {
-            if (item.hotelType?.name.toLowerCase().includes('гостевой дом')) {
-                const url = `https://tourism.fsa.gov.ru/api/v1/resorts/hotels/${hotel.id}/dhdrawer`;
+            if (hotel.hotelType?.name?.toLowerCase().includes('гостевой дом')) {
+                const url = `https://tourism.fsa.gov.ru/api/v1/resorts/hotels/${hotel.id}/ghDrawer`;
+
                 const resp = await fetch(url, { signal: currentController?.signal });
                 if (!resp.ok) return '—';
                 const data = await resp.json();
